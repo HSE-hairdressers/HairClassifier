@@ -22,8 +22,12 @@ def test():
     # do some fancy processing here....
     result = classifier.predict(img)
     # build a response dict to send back to client
-    response = {'message': f'image received. size={img.shape[1]}x{img.shape[0]}; result: {result}'
-                }
+    response = {'message': 'image received', 
+                'size' : {
+                    'width': img.shape[1],
+                    'height' : img.shape[0]},
+                'result' : f'{result}'}
+
     # encode response using jsonpickle
     response_pickled = jsonpickle.encode(response)
 
