@@ -2,18 +2,14 @@ from flask import Flask, request, Response
 import jsonpickle
 import numpy as np
 import cv2
+from tensorflow import keras
 
-from src.classificator import HairClassificator
-
+from src.classifier import HairClassifier
 DATA_PATH = "C:/Users/ageev/code/hair_dataset/onlyfaces/"
 
 # Initialize the Flask application
 app = Flask(__name__)
-classificator = HairClassificator(DATA_PATH)
-classificator.fit()
-print("Classificator trained.")
-
-
+classifier = HairClassifier(keras.models.load_model("C:/Users/ageev/code/hairstyle_classifier"), DATA_PATH)
 # route http posts to this method
 @app.route('/api/test', methods=['POST'])
 def test():
@@ -24,7 +20,7 @@ def test():
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
     # do some fancy processing here....
-    result = classificator.predict(img)
+    result = classifier.predict(img)
     # build a response dict to send back to client
     response = {'message': f'image received. size={img.shape[1]}x{img.shape[0]}; result: {result}'
                 }
