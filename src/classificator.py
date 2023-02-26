@@ -14,7 +14,7 @@ class HairClassificator:
     IMG_HEIGHT = 180
     IMG_WIDTH = 180
     AUTOTUNE = tf.data.AUTOTUNE
-    EPOCHS = 15
+    EPOCHS = 10
     DATA_AUGMENTATION = keras.Sequential(
         [
             layers.RandomFlip("horizontal",
