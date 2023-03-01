@@ -14,20 +14,22 @@ classifier = HairClassifier(keras.models.load_model("C:/Users/ageev/code/hairsty
 @app.route('/api/test', methods=['POST'])
 def test():
     r = request
+    print('Python Server caught request.')
     # convert string of image data to uint8
     nparr = np.fromstring(r.data, np.uint8)
     # decode image
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-
-    # do some fancy processing here....
+    print('Image decoded successfully')
+    # do some fancy processing here...
     result = classifier.predict(img)
+    print('Finished classification')
     # build a response dict to send back to client
     response = {'message': 'image received', 
                 'size' : {
                     'width': img.shape[1],
                     'height' : img.shape[0]},
                 'result' : f'{result}'}
-
+    print('Sending result')
     # encode response using jsonpickle
     response_pickled = jsonpickle.encode(response)
 
