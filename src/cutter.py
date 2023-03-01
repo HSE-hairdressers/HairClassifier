@@ -16,7 +16,8 @@ class Cutter:
         results = self.__face_detection.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
 
         if not results.detections:
-            return
+            print('No face found')
+            raise ValueError('No face')
         for detection in results.detections:
             bbox = detection.location_data.relative_bounding_box
             bbox_points = {
@@ -25,12 +26,14 @@ class Cutter:
                 "xmax": min(int(bbox.width * width * 1.4 + bbox.xmin * width), width - 1),
                 "ymax": min(int(bbox.height * height * 1.3 + bbox.ymin * height), height - 1)
             }
+        print('Face found. Image cut')
         return image[bbox_points["ymin"]:bbox_points["ymax"], bbox_points["xmin"]:bbox_points["xmax"]]
 
     def __set_black_background(self, image):
         height, width, channel = image.shape
         image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         # get the result
+        print('Selfie segmentation.')
         results = self.__selfie_segmentation.process(image_rgb)
         # extract segmented mask
         mask = results.segmentation_mask
@@ -38,18 +41,22 @@ class Cutter:
         condition = np.stack((mask,) * 3, axis=-1) > 0.5
         # resize the background image to the same size of the original frame
         black = np.zeros((height, width, 3), dtype="uint8")
+        print('Background is set to black.')
         # combine frame and background image using the condition
         return np.where(condition, image, black)
 
     def get_face(self, image):
+        print('Classification started')
         new_size = (500, int(image.shape[0] * 500 / image.shape[1]))
         image_resized = cv2.resize(image, new_size)
 
+        print('Cutting face zone')
         image_cut = self.__get_face_zone(image_resized)
 
         new_size = (180, int(image_cut.shape[0] * 180 / image_cut.shape[1]))
         image_cut_resized = cv2.resize(image_cut, new_size)
 
+        print('Setting black background')
         face = self.__set_black_background(image_cut_resized)
 
         return face
