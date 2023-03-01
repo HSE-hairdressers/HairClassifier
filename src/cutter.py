@@ -17,7 +17,7 @@ class Cutter:
 
         if not results.detections:
             print('No face found')
-            return
+            raise ValueError('No face')
         for detection in results.detections:
             bbox = detection.location_data.relative_bounding_box
             bbox_points = {

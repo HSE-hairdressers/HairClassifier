@@ -21,14 +21,17 @@ def test():
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     print('Image decoded successfully')
     # do some fancy processing here...
-    result = classifier.predict(img)
+    try:
+        result = classifier.predict(img)
+    except ValueError:
+        result = 0
     print('Finished classification')
     # build a response dict to send back to client
-    response = {'message': 'image received', 
-                'size' : {
+    response = {'message': 'Image Received',
+                'size': {
                     'width': img.shape[1],
-                    'height' : img.shape[0]},
-                'result' : f'{result}'}
+                    'height': img.shape[0]},
+                'result': f'{result}'}
     print('Sending result')
     # encode response using jsonpickle
     response_pickled = jsonpickle.encode(response)
