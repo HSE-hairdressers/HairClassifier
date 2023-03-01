@@ -20,7 +20,6 @@ def test():
     # decode image
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     print('Image decoded successfully')
-    # do some fancy processing here...
     try:
         result = classifier.predict(img)
         message = "Hairstyle classified"
