@@ -23,14 +23,17 @@ def test():
     # do some fancy processing here...
     try:
         result = classifier.predict(img)
+        message = "Hairstyle classified"
     except ValueError:
         result = 0
+        message = "Face not detected"
     print('Finished classification')
     # build a response dict to send back to client
-    response = {'message': 'Image Received',
+    response = {'message': message,
                 'size': {
                     'width': img.shape[1],
-                    'height': img.shape[0]},
+                    'height': img.shape[0]
+                },
                 'result': f'{result}'}
     print('Sending result')
     # encode response using jsonpickle
