@@ -1,2 +1,4 @@
 .idea/
 src/__pycache__/
+onlyfaces/
+hairstyle_classifier/

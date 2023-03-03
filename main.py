@@ -5,11 +5,13 @@ import cv2
 from tensorflow import keras
 
 from src.classifier import HairClassifier
-DATA_PATH = "C:/Users/ageev/code/hair_dataset/onlyfaces/"
+DATA_PATH = "onlyfaces/"
 
 # Initialize the Flask application
 app = Flask(__name__)
-classifier = HairClassifier(keras.models.load_model("C:/Users/ageev/code/hairstyle_classifier"), DATA_PATH)
+classifier = HairClassifier(keras.models.load_model("hairstyle_classifier"), DATA_PATH)
+
+
 # route http posts to this method
 @app.route('/api/test', methods=['POST'])
 def test():
@@ -44,4 +46,4 @@ def test():
 
 # start flask app
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="localhost", port=8022)
