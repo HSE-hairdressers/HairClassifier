@@ -10,7 +10,7 @@ class RestoredModel:
     def __init__(self, model_path):
         self.cutter = ImageCutter()
         self.model = tf.keras.models.load_model(model_path + MODEL_NAME)
-        with (open(model_path + CLASSES_FILE_NAME)) as infile:
+        with (open(model_path + MODEL_NAME + "/" + CLASSES_FILE_NAME)) as infile:
             self.class_names = [name.rstrip('\n') for name in infile.readlines()]
 
     def predict(self, image) -> str:
