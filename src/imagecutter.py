@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 
 
-class Cutter:
+class ImageCutter:
     def __init__(self):
         mp_face_detection = mp.solutions.face_detection
         self.__face_detection = mp_face_detection.FaceDetection(model_selection=1, min_detection_confidence=0.5)

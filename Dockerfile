@@ -11,4 +11,4 @@ COPY . .
 
 RUN apt-get update && apt-get install ffmpeg libsm6 libxext6  -y
 
-CMD [ "python3", "main.py"]
+CMD [ "python3", "app.py"]

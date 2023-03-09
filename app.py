@@ -2,14 +2,14 @@ from flask import Flask, request, Response
 import jsonpickle
 import numpy as np
 import cv2
-from tensorflow import keras
 
-from src.classifier import HairClassifier
-DATA_PATH = "onlyfaces/"
+from src.constants import MODEL_PATH
+from src.restoredmodel import RestoredModel
+
 
 # Initialize the Flask application
 app = Flask(__name__)
-classifier = HairClassifier(keras.models.load_model("hairstyle_classifier"), DATA_PATH)
+classifier = RestoredModel(MODEL_PATH)
 
 
 # route http posts to this method
