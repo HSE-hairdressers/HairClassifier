@@ -15,6 +15,7 @@ class RestoredModel:
 
     def predict(self, image) -> str:
         image = self.cutter.get_face(image)
+        image = self.cutter.cut_face_out(image)
         # Resize image to match with input model
         image = cv2.resize(image, (180, 180))
 
@@ -24,4 +25,8 @@ class RestoredModel:
         predictions = self.model.predict(
             image_tensor, use_multiprocessing=True)
         result = self.class_names[np.argmax(predictions[0])]
+        print("Prediction results:")
+        for i in range(len(predictions[0])):
+            print(self.class_names[i] + " " + str(predictions[0][i]))
+        print()
         return result
