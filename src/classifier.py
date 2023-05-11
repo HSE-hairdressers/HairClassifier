@@ -1,29 +1,76 @@
 import tensorflow as tf
-import cv2
+from tensorflow import keras
+from keras import layers
+from keras.models import Sequential
 import pathlib
-import numpy as np
 
-from src.cutter import Cutter
+from src.imagecutter import ImageCutter
+from src.constants import MODEL_NAME, CLASSES_FILE_NAME
 
 
-class HairClassifier:
-    def __init__(self, restored_model, data_set_path):
-        self.data_dir = pathlib.Path(data_set_path)
-        self.cutter = Cutter()
-        self.model = restored_model
-        train_ds = tf.keras.utils.image_dataset_from_directory(
-            self.data_dir)
-        self.class_names = train_ds.class_names
+class ImageClassifier:
+    BATCH_SIZE = 32
+    IMG_HEIGHT = 180
+    IMG_WIDTH = 180
+    AUTOTUNE = tf.data.AUTOTUNE
+    EPOCHS = 15
+    DATA_AUGMENTATION = keras.Sequential([
+            layers.RandomFlip("horizontal", input_shape=(IMG_HEIGHT, IMG_WIDTH, 3)),
+            layers.RandomRotation(0.1),
+            layers.RandomZoom(0.1),
+    ])
 
-    def predict(self, image) -> str:
-        image = self.cutter.get_face(image)
-        # Resize image to match with input model
-        image = cv2.resize(image, (180, 180))
+    def __init__(self, dataset_path):
+        self.data_dir = pathlib.Path(dataset_path)
+        self.cutter = ImageCutter()
+        self.model = None
+        self.train_ds = tf.keras.utils.image_dataset_from_directory(
+            self.data_dir,
+            validation_split=0.2,
+            subset="training",
+            seed=13,
+            image_size=(self.IMG_HEIGHT, self.IMG_WIDTH),
+            batch_size=self.BATCH_SIZE)
 
-        # Convert to Tensor of type float32 for example
-        image_tensor = tf.convert_to_tensor(image)
-        image_tensor = tf.expand_dims(image_tensor, 0)
-        predictions = self.model.predict(
-            image_tensor, use_multiprocessing=True)
-        result = self.class_names[np.argmax(predictions[0])]
-        return result
+        self.val_ds = tf.keras.utils.image_dataset_from_directory(
+            self.data_dir,
+            validation_split=0.2,
+            subset="validation",
+            seed=13,
+            image_size=(self.IMG_HEIGHT, self.IMG_WIDTH),
+            batch_size=self.BATCH_SIZE)
+
+        self.class_names = self.train_ds.class_names
+
+    def fit(self):
+        train_ds = self.train_ds.cache().prefetch(buffer_size=self.AUTOTUNE)
+        val_ds = self.val_ds.cache().prefetch(buffer_size=self.AUTOTUNE)
+        num_classes = len(self.class_names)
+
+        self.model = Sequential([
+            self.DATA_AUGMENTATION,
+            layers.Dropout(0.2),
+            layers.Rescaling(1. / 255),
+            layers.Conv2D(16, 3, padding='same', activation='relu'),
+            layers.MaxPooling2D(),
+            layers.Conv2D(32, 3, padding='same', activation='relu'),
+            layers.Conv2D(32, 3, padding='same', activation='relu'),
+            layers.MaxPooling2D(),
+            layers.Conv2D(64, 3, padding='same', activation='relu'),
+            layers.MaxPooling2D(),
+            layers.Dropout(0.4),
+            layers.Flatten(),
+            layers.Dense(128, activation='relu'),
+            layers.Dense(num_classes, activation='softmax')
+        ])
+        self.model.compile(optimizer='adam',
+                           loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False),
+                           metrics=['accuracy'])
+        self.model.fit(train_ds,
+                       validation_data=val_ds,
+                       epochs=self.EPOCHS)
+
+    def save(self, path):
+        tf.keras.models.save_model(self.model, path + MODEL_NAME)
+        with (open(path + MODEL_NAME + "/" + CLASSES_FILE_NAME, "wt")) as outfile:
+            outfile.writelines([name + "\n" for name in self.class_names])
