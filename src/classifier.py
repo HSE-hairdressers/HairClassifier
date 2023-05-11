@@ -6,7 +6,7 @@ from keras import layers, Model
 from keras.models import Sequential
 from albumentations import (
     Compose, RandomBrightnessContrast, ImageCompression, HueSaturationValue, HorizontalFlip,
-    Rotate
+    Rotate, RandomBrightness, RandomContrast
 )
 import pathlib
 
@@ -24,6 +24,32 @@ class ImageClassifier:
         layers.RandomRotation(0.1),
         layers.RandomZoom(0.1),
     ])
+    TRANSFORMS = transforms = Compose([
+            Rotate(limit=40),
+            RandomBrightness(limit=0.1),
+            ImageCompression(quality_lower=85, quality_upper=100, p=0.5),
+            HueSaturationValue(hue_shift_limit=20, sat_shift_limit=30, val_shift_limit=20, p=0.5),
+            RandomContrast(limit=0.2, p=0.5),
+            HorizontalFlip(),
+    ])
+
+    def augment(self, image, img_size):
+        data = {"image": image}
+        aug_data = self.TRANSFORMS(**data)
+        aug_img = aug_data["image"]
+        aug_img = tf.cast(aug_img / 255.0, tf.float32)
+        aug_img = tf.image.resize(aug_img, size=[img_size, img_size])
+        return aug_img
+
+    def process_data(self, image, label, img_size):
+        if image is None:
+            return image, label
+        aug_img = tf.numpy_function(func=self.augment, inp=[image, img_size], Tout=tf.float32)
+        return aug_img, label
+
+    def set_shapes(self, img, label, img_shape=(180, 180, 3)):
+        img.set_shape(img_shape)
+        return img, label
 
     def __init__(self, dataset_path):
         self.data_dir = pathlib.Path(dataset_path)
@@ -57,13 +83,13 @@ class ImageClassifier:
         base_model = tf.keras.applications.ResNet50(weights='imagenet',
                                                     include_top=False,
                                                     input_shape=(self.IMG_HEIGHT, self.IMG_WIDTH, 3))
+
         base_model.trainable = False
 
-        inputs = tf.keras.Input(shape=(180, 180, 3))
+        inputs = tf.keras.Input(shape=(self.IMG_HEIGHT, self.IMG_WIDTH, 3))
         x = self.DATA_AUGMENTATION(inputs)
-        # x = layers.Dropout(0.2)(x)
         x = base_model(x, training=False)
-        x = layers.Dropout(0.5)(x)
+        x = layers.Dropout(0.4)(x)
         x = layers.Flatten()(x)
         x = layers.Dense(1000, activation='relu')(x)
         predictions = layers.Dense(num_classes, activation='softmax')(x)
