@@ -2,3 +2,5 @@
 src/__pycache__/
 onlyfaces/
 hairstyle_classifier/
+/client_test/
+__pycache__/
