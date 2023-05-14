@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.10.0" />
-<title>src.restoredmodel API documentation</title>
+<title>src.client_test.client API documentation</title>
 <meta name="description" content="" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
@@ -19,61 +19,49 @@
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>src.restoredmodel</code></h1>
+<h1 class="title">Module <code>src.client_test.client</code></h1>
 </header>
 <section id="section-intro">
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">import logging
-import tensorflow as tf
+<pre><code class="python">from __future__ import print_function
+import requests
+import json
 import cv2
-import numpy as np
-
-from src.constants import MODEL_NAME, CLASSES_FILE_NAME
-from src.imagecutter import ImageCutter
 
 
-class RestoredModel:
+# Test Client
+def send_image(path: str) -&gt; requests.Response:
     &#34;&#34;&#34;
-    Class for using a pretrained model, which was saved in the memory
+    Function, which posts image to server
+    :param path: path to image file
+    :return: response
     &#34;&#34;&#34;
-    def __init__(self, model_path):
-        &#34;&#34;&#34;
-        Initialization function
-        :param model_path: absolute path of the folder with pretrained model
-        &#34;&#34;&#34;
-        self.cutter = ImageCutter()
-        self.model = tf.keras.models.load_model(model_path + MODEL_NAME)
-        # Retrieve class names
-        with (open(model_path + MODEL_NAME + &#34;/&#34; + CLASSES_FILE_NAME)) as infile:
-            self.class_names = [name.rstrip(&#39;\n&#39;) for name in infile.readlines()]
+    addr = &#39;http://localhost:8022&#39;
+    test_url = addr + &#39;/api/test&#39;
+    # Specialize headers for http request
+    content_type = &#39;image/jpeg&#39;
+    headers = {&#39;content-type&#39;: content_type}
+    img = cv2.imread(path)
 
-    def predict(self, image) -&gt; str:
-        &#34;&#34;&#34;
-        Prediction function
-        :param image: input image
-        :return: the most probable class to which image belongs
-        &#34;&#34;&#34;
-        # Preprocess image
-        image = self.cutter.get_face(image)
-        image = self.cutter.cut_face_out(image)
-        # Resize image to match with input model
-        image = cv2.resize(image, (180, 180))
-        # Convert th image to Tensor
-        image_tensor = tf.convert_to_tensor(image)
-        image_tensor = tf.expand_dims(image_tensor, 0)
-        logging.debug(&#34;Classification started&#34;)
-        predictions = self.model.predict(image_tensor, use_multiprocessing=True)
-        # Choose class with the highest probability
-        result = self.class_names[np.argmax(predictions[0])]
-        # Print logs for debug
-        print(&#34;Prediction results:&#34;)
-        for i in range(len(predictions[0])):
-            print(self.class_names[i] + &#34; &#34; + str(predictions[0][i]))
-        print()
-        return result</code></pre>
+    # Encode image as jpeg
+    _, img_encoded = cv2.imencode(&#39;.jpg&#39;, img)
+    # Send http request and receive response
+    response = requests.post(test_url, data=img_encoded.tobytes(), headers=headers)
+    # decode response
+    return response
+
+
+if __name__ == &#39;__main__&#39;:
+    while True:
+        print(&#34;Enter image path or &#39;q&#39; to quit:&#34;)
+        inp = input().strip(&#39;&#34;&#39;)
+        if inp == &#34;q&#34;:
+            break
+        response = send_image(inp)
+        print(json.loads(response.text))</code></pre>
 </details>
 </section>
 <section>
@@ -81,104 +69,43 @@ class RestoredModel:
 <section>
 </section>
 <section>
-</section>
-<section>
-<h2 class="section-title" id="header-classes">Classes</h2>
+<h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
-<dt id="src.restoredmodel.RestoredModel"><code class="flex name class">
-<span>class <span class="ident">RestoredModel</span></span>
-<span>(</span><span>model_path)</span>
+<dt id="src.client_test.client.send_image"><code class="name flex">
+<span>def <span class="ident">send_image</span></span>(<span>path: str) ‑> requests.models.Response</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Class for using a pretrained model, which was saved in the memory</p>
-<p>Initialization function
-:param model_path: absolute path of the folder with pretrained model</p></div>
+<div class="desc"><p>Function, which posts image to server
+:param path: path to image file
+:return: response</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">class RestoredModel:
+<pre><code class="python">def send_image(path: str) -&gt; requests.Response:
     &#34;&#34;&#34;
-    Class for using a pretrained model, which was saved in the memory
+    Function, which posts image to server
+    :param path: path to image file
+    :return: response
     &#34;&#34;&#34;
-    def __init__(self, model_path):
-        &#34;&#34;&#34;
-        Initialization function
-        :param model_path: absolute path of the folder with pretrained model
-        &#34;&#34;&#34;
-        self.cutter = ImageCutter()
-        self.model = tf.keras.models.load_model(model_path + MODEL_NAME)
-        # Retrieve class names
-        with (open(model_path + MODEL_NAME + &#34;/&#34; + CLASSES_FILE_NAME)) as infile:
-            self.class_names = [name.rstrip(&#39;\n&#39;) for name in infile.readlines()]
+    addr = &#39;http://localhost:8022&#39;
+    test_url = addr + &#39;/api/test&#39;
+    # Specialize headers for http request
+    content_type = &#39;image/jpeg&#39;
+    headers = {&#39;content-type&#39;: content_type}
+    img = cv2.imread(path)
 
-    def predict(self, image) -&gt; str:
-        &#34;&#34;&#34;
-        Prediction function
-        :param image: input image
-        :return: the most probable class to which image belongs
-        &#34;&#34;&#34;
-        # Preprocess image
-        image = self.cutter.get_face(image)
-        image = self.cutter.cut_face_out(image)
-        # Resize image to match with input model
-        image = cv2.resize(image, (180, 180))
-        # Convert th image to Tensor
-        image_tensor = tf.convert_to_tensor(image)
-        image_tensor = tf.expand_dims(image_tensor, 0)
-        logging.debug(&#34;Classification started&#34;)
-        predictions = self.model.predict(image_tensor, use_multiprocessing=True)
-        # Choose class with the highest probability
-        result = self.class_names[np.argmax(predictions[0])]
-        # Print logs for debug
-        print(&#34;Prediction results:&#34;)
-        for i in range(len(predictions[0])):
-            print(self.class_names[i] + &#34; &#34; + str(predictions[0][i]))
-        print()
-        return result</code></pre>
-</details>
-<h3>Methods</h3>
-<dl>
-<dt id="src.restoredmodel.RestoredModel.predict"><code class="name flex">
-<span>def <span class="ident">predict</span></span>(<span>self, image) ‑> str</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Prediction function
-:param image: input image
-:return: the most probable class to which image belongs</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def predict(self, image) -&gt; str:
-    &#34;&#34;&#34;
-    Prediction function
-    :param image: input image
-    :return: the most probable class to which image belongs
-    &#34;&#34;&#34;
-    # Preprocess image
-    image = self.cutter.get_face(image)
-    image = self.cutter.cut_face_out(image)
-    # Resize image to match with input model
-    image = cv2.resize(image, (180, 180))
-    # Convert th image to Tensor
-    image_tensor = tf.convert_to_tensor(image)
-    image_tensor = tf.expand_dims(image_tensor, 0)
-    logging.debug(&#34;Classification started&#34;)
-    predictions = self.model.predict(image_tensor, use_multiprocessing=True)
-    # Choose class with the highest probability
-    result = self.class_names[np.argmax(predictions[0])]
-    # Print logs for debug
-    print(&#34;Prediction results:&#34;)
-    for i in range(len(predictions[0])):
-        print(self.class_names[i] + &#34; &#34; + str(predictions[0][i]))
-    print()
-    return result</code></pre>
+    # Encode image as jpeg
+    _, img_encoded = cv2.imencode(&#39;.jpg&#39;, img)
+    # Send http request and receive response
+    response = requests.post(test_url, data=img_encoded.tobytes(), headers=headers)
+    # decode response
+    return response</code></pre>
 </details>
 </dd>
 </dl>
-</dd>
-</dl>
+</section>
+<section>
 </section>
 </article>
 <nav id="sidebar">
@@ -189,17 +116,12 @@ class RestoredModel:
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="src" href="index.html">src</a></code></li>
+<li><code><a title="src.client_test" href="index.html">src.client_test</a></code></li>
 </ul>
 </li>
-<li><h3><a href="#header-classes">Classes</a></h3>
-<ul>
-<li>
-<h4><code><a title="src.restoredmodel.RestoredModel" href="#src.restoredmodel.RestoredModel">RestoredModel</a></code></h4>
+<li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
-<li><code><a title="src.restoredmodel.RestoredModel.predict" href="#src.restoredmodel.RestoredModel.predict">predict</a></code></li>
-</ul>
-</li>
+<li><code><a title="src.client_test.client.send_image" href="#src.client_test.client.send_image">send_image</a></code></li>
 </ul>
 </li>
 </ul>

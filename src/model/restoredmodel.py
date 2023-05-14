@@ -3,8 +3,8 @@ import tensorflow as tf
 import cv2
 import numpy as np
 
-from src.constants import MODEL_NAME, CLASSES_FILE_NAME
-from src.imagecutter import ImageCutter
+from src.utils.constants import MODEL_NAME, CLASSES_FILE_NAME
+from src.segmentation.imagecutter import ImageCutter
 
 
 class RestoredModel:

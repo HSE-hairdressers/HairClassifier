@@ -1,5 +1,5 @@
-from src.classifier import ImageClassifier
-from src.constants import DATA_PATH, MODEL_PATH
+from src.model.classifier import ImageClassifier
+from src.utils.constants import DATA_PATH, MODEL_PATH
 
 if __name__ == '__main__':
     classifier = ImageClassifier()

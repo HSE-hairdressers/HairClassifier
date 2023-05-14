@@ -5,8 +5,8 @@ import logging
 import cv2
 from waitress import serve
 
-from src.constants import MODEL_PATH
-from src.restoredmodel import RestoredModel
+from src.utils.constants import MODEL_PATH
+from src.model.restoredmodel import RestoredModel
 
 
 # Initialize the Flask application

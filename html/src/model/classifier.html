@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.10.0" />
-<title>src.classifier API documentation</title>
+<title>src.model.classifier API documentation</title>
 <meta name="description" content="" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
@@ -19,25 +19,19 @@
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>src.classifier</code></h1>
+<h1 class="title">Module <code>src.model.classifier</code></h1>
 </header>
 <section id="section-intro">
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">from functools import partial
-
-import tensorflow as tf
+<pre><code class="python">import tensorflow as tf
 from tensorflow import keras
 from keras import layers, Model
 from keras.models import Sequential
-from albumentations import (
-    Compose, RandomBrightnessContrast, ImageCompression, HueSaturationValue, HorizontalFlip,
-    Rotate
-)
 import pathlib
-from src.constants import MODEL_NAME, CLASSES_FILE_NAME
+from src.utils.constants import MODEL_NAME, CLASSES_FILE_NAME
 
 
 class ImageClassifier:
@@ -53,15 +47,16 @@ class ImageClassifier:
     ])
 
     def __init__(self):
-        &#39;&#39;&#39;
+        &#34;&#34;&#34;
         Initialization function
-        &#39;&#39;&#39;
+        &#34;&#34;&#34;
         self.model = None
         self.class_names = None
 
-    def fit(self, dataset_path) -&gt; &#34;ImageClassifier&#34;:
+    def fit(self, dataset_path, pretrained=False) -&gt; &#34;ImageClassifier&#34;:
         &#34;&#34;&#34;
         Classifier training function
+        :param pretrained: flag for transfer learning
         :param dataset_path: path to dataset folder
         :return: trained model
         &#34;&#34;&#34;
@@ -86,23 +81,38 @@ class ImageClassifier:
         val_ds = val_ds.cache().prefetch(buffer_size=self.AUTOTUNE)
         num_classes = len(self.class_names)
 
-        self.model = Sequential([
-            self.DATA_AUGMENTATION,
-            layers.Dropout(0.2),
-            layers.Rescaling(1. / 255),
-            layers.Conv2D(16, 3, padding=&#39;same&#39;, activation=&#39;relu&#39;),
-            layers.Conv2D(16, 3, padding=&#39;same&#39;, activation=&#39;relu&#39;),
-            layers.MaxPooling2D(),
-            layers.Conv2D(32, 3, padding=&#39;same&#39;, activation=&#39;relu&#39;),
-            layers.Conv2D(32, 3, padding=&#39;same&#39;, activation=&#39;relu&#39;),
-            layers.MaxPooling2D(),
-            layers.Conv2D(64, 3, padding=&#39;same&#39;, activation=&#39;relu&#39;),
-            layers.MaxPooling2D(),
-            layers.Dropout(0.4),
-            layers.Flatten(),
-            layers.Dense(128, activation=&#39;relu&#39;),
-            layers.Dense(num_classes, activation=&#39;softmax&#39;)
-        ])
+        if pretrained:
+            base_model = tf.keras.applications.ResNet50(weights=&#39;imagenet&#39;,
+                                                        include_top=False,
+                                                        input_shape=(self.IMG_HEIGHT, self.IMG_WIDTH, 3))
+            base_model.trainable = False
+            inputs = tf.keras.Input(shape=(self.IMG_HEIGHT, self.IMG_WIDTH, 3))
+            x = self.DATA_AUGMENTATION(inputs)
+            x = base_model(x, training=False)
+            x = layers.Dropout(0.4)(x)
+            x = layers.Flatten()(x)
+            x = layers.Dense(1000, activation=&#39;relu&#39;)(x)
+            predictions = layers.Dense(num_classes, activation=&#39;softmax&#39;)(x)
+            self.model = Model(inputs=inputs, outputs=predictions)
+        else:
+            self.model = Sequential([
+                self.DATA_AUGMENTATION,
+                layers.Dropout(0.2),
+                layers.Rescaling(1. / 255),
+                layers.Conv2D(16, 3, padding=&#39;same&#39;, activation=&#39;relu&#39;),
+                layers.Conv2D(16, 3, padding=&#39;same&#39;, activation=&#39;relu&#39;),
+                layers.MaxPooling2D(),
+                layers.Conv2D(32, 3, padding=&#39;same&#39;, activation=&#39;relu&#39;),
+                layers.Conv2D(32, 3, padding=&#39;same&#39;, activation=&#39;relu&#39;),
+                layers.MaxPooling2D(),
+                layers.Conv2D(64, 3, padding=&#39;same&#39;, activation=&#39;relu&#39;),
+                layers.MaxPooling2D(),
+                layers.Dropout(0.4),
+                layers.Flatten(),
+                layers.Dense(128, activation=&#39;relu&#39;),
+                layers.Dense(num_classes, activation=&#39;softmax&#39;)
+            ])
+
         self.model.compile(optimizer=&#39;adam&#39;,
                            loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False),
                            metrics=[&#39;accuracy&#39;])
@@ -132,7 +142,7 @@ class ImageClassifier:
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
-<dt id="src.classifier.ImageClassifier"><code class="flex name class">
+<dt id="src.model.classifier.ImageClassifier"><code class="flex name class">
 <span>class <span class="ident">ImageClassifier</span></span>
 </code></dt>
 <dd>
@@ -154,15 +164,16 @@ class ImageClassifier:
     ])
 
     def __init__(self):
-        &#39;&#39;&#39;
+        &#34;&#34;&#34;
         Initialization function
-        &#39;&#39;&#39;
+        &#34;&#34;&#34;
         self.model = None
         self.class_names = None
 
-    def fit(self, dataset_path) -&gt; &#34;ImageClassifier&#34;:
+    def fit(self, dataset_path, pretrained=False) -&gt; &#34;ImageClassifier&#34;:
         &#34;&#34;&#34;
         Classifier training function
+        :param pretrained: flag for transfer learning
         :param dataset_path: path to dataset folder
         :return: trained model
         &#34;&#34;&#34;
@@ -187,23 +198,38 @@ class ImageClassifier:
         val_ds = val_ds.cache().prefetch(buffer_size=self.AUTOTUNE)
         num_classes = len(self.class_names)
 
-        self.model = Sequential([
-            self.DATA_AUGMENTATION,
-            layers.Dropout(0.2),
-            layers.Rescaling(1. / 255),
-            layers.Conv2D(16, 3, padding=&#39;same&#39;, activation=&#39;relu&#39;),
-            layers.Conv2D(16, 3, padding=&#39;same&#39;, activation=&#39;relu&#39;),
-            layers.MaxPooling2D(),
-            layers.Conv2D(32, 3, padding=&#39;same&#39;, activation=&#39;relu&#39;),
-            layers.Conv2D(32, 3, padding=&#39;same&#39;, activation=&#39;relu&#39;),
-            layers.MaxPooling2D(),
-            layers.Conv2D(64, 3, padding=&#39;same&#39;, activation=&#39;relu&#39;),
-            layers.MaxPooling2D(),
-            layers.Dropout(0.4),
-            layers.Flatten(),
-            layers.Dense(128, activation=&#39;relu&#39;),
-            layers.Dense(num_classes, activation=&#39;softmax&#39;)
-        ])
+        if pretrained:
+            base_model = tf.keras.applications.ResNet50(weights=&#39;imagenet&#39;,
+                                                        include_top=False,
+                                                        input_shape=(self.IMG_HEIGHT, self.IMG_WIDTH, 3))
+            base_model.trainable = False
+            inputs = tf.keras.Input(shape=(self.IMG_HEIGHT, self.IMG_WIDTH, 3))
+            x = self.DATA_AUGMENTATION(inputs)
+            x = base_model(x, training=False)
+            x = layers.Dropout(0.4)(x)
+            x = layers.Flatten()(x)
+            x = layers.Dense(1000, activation=&#39;relu&#39;)(x)
+            predictions = layers.Dense(num_classes, activation=&#39;softmax&#39;)(x)
+            self.model = Model(inputs=inputs, outputs=predictions)
+        else:
+            self.model = Sequential([
+                self.DATA_AUGMENTATION,
+                layers.Dropout(0.2),
+                layers.Rescaling(1. / 255),
+                layers.Conv2D(16, 3, padding=&#39;same&#39;, activation=&#39;relu&#39;),
+                layers.Conv2D(16, 3, padding=&#39;same&#39;, activation=&#39;relu&#39;),
+                layers.MaxPooling2D(),
+                layers.Conv2D(32, 3, padding=&#39;same&#39;, activation=&#39;relu&#39;),
+                layers.Conv2D(32, 3, padding=&#39;same&#39;, activation=&#39;relu&#39;),
+                layers.MaxPooling2D(),
+                layers.Conv2D(64, 3, padding=&#39;same&#39;, activation=&#39;relu&#39;),
+                layers.MaxPooling2D(),
+                layers.Dropout(0.4),
+                layers.Flatten(),
+                layers.Dense(128, activation=&#39;relu&#39;),
+                layers.Dense(num_classes, activation=&#39;softmax&#39;)
+            ])
+
         self.model.compile(optimizer=&#39;adam&#39;,
                            loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False),
                            metrics=[&#39;accuracy&#39;])
@@ -225,47 +251,49 @@ class ImageClassifier:
 </details>
 <h3>Class variables</h3>
 <dl>
-<dt id="src.classifier.ImageClassifier.AUTOTUNE"><code class="name">var <span class="ident">AUTOTUNE</span></code></dt>
+<dt id="src.model.classifier.ImageClassifier.AUTOTUNE"><code class="name">var <span class="ident">AUTOTUNE</span></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="src.classifier.ImageClassifier.BATCH_SIZE"><code class="name">var <span class="ident">BATCH_SIZE</span></code></dt>
+<dt id="src.model.classifier.ImageClassifier.BATCH_SIZE"><code class="name">var <span class="ident">BATCH_SIZE</span></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="src.classifier.ImageClassifier.DATA_AUGMENTATION"><code class="name">var <span class="ident">DATA_AUGMENTATION</span></code></dt>
+<dt id="src.model.classifier.ImageClassifier.DATA_AUGMENTATION"><code class="name">var <span class="ident">DATA_AUGMENTATION</span></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="src.classifier.ImageClassifier.EPOCHS"><code class="name">var <span class="ident">EPOCHS</span></code></dt>
+<dt id="src.model.classifier.ImageClassifier.EPOCHS"><code class="name">var <span class="ident">EPOCHS</span></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="src.classifier.ImageClassifier.IMG_HEIGHT"><code class="name">var <span class="ident">IMG_HEIGHT</span></code></dt>
+<dt id="src.model.classifier.ImageClassifier.IMG_HEIGHT"><code class="name">var <span class="ident">IMG_HEIGHT</span></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="src.classifier.ImageClassifier.IMG_WIDTH"><code class="name">var <span class="ident">IMG_WIDTH</span></code></dt>
+<dt id="src.model.classifier.ImageClassifier.IMG_WIDTH"><code class="name">var <span class="ident">IMG_WIDTH</span></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
 </dl>
 <h3>Methods</h3>
 <dl>
-<dt id="src.classifier.ImageClassifier.fit"><code class="name flex">
-<span>def <span class="ident">fit</span></span>(<span>self, dataset_path) ‑> <a title="src.classifier.ImageClassifier" href="#src.classifier.ImageClassifier">ImageClassifier</a></span>
+<dt id="src.model.classifier.ImageClassifier.fit"><code class="name flex">
+<span>def <span class="ident">fit</span></span>(<span>self, dataset_path, pretrained=False) ‑> <a title="src.model.classifier.ImageClassifier" href="#src.model.classifier.ImageClassifier">ImageClassifier</a></span>
 </code></dt>
 <dd>
 <div class="desc"><p>Classifier training function
+:param pretrained: flag for transfer learning
 :param dataset_path: path to dataset folder
 :return: trained model</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def fit(self, dataset_path) -&gt; &#34;ImageClassifier&#34;:
+<pre><code class="python">def fit(self, dataset_path, pretrained=False) -&gt; &#34;ImageClassifier&#34;:
     &#34;&#34;&#34;
     Classifier training function
+    :param pretrained: flag for transfer learning
     :param dataset_path: path to dataset folder
     :return: trained model
     &#34;&#34;&#34;
@@ -290,23 +318,38 @@ class ImageClassifier:
     val_ds = val_ds.cache().prefetch(buffer_size=self.AUTOTUNE)
     num_classes = len(self.class_names)
 
-    self.model = Sequential([
-        self.DATA_AUGMENTATION,
-        layers.Dropout(0.2),
-        layers.Rescaling(1. / 255),
-        layers.Conv2D(16, 3, padding=&#39;same&#39;, activation=&#39;relu&#39;),
-        layers.Conv2D(16, 3, padding=&#39;same&#39;, activation=&#39;relu&#39;),
-        layers.MaxPooling2D(),
-        layers.Conv2D(32, 3, padding=&#39;same&#39;, activation=&#39;relu&#39;),
-        layers.Conv2D(32, 3, padding=&#39;same&#39;, activation=&#39;relu&#39;),
-        layers.MaxPooling2D(),
-        layers.Conv2D(64, 3, padding=&#39;same&#39;, activation=&#39;relu&#39;),
-        layers.MaxPooling2D(),
-        layers.Dropout(0.4),
-        layers.Flatten(),
-        layers.Dense(128, activation=&#39;relu&#39;),
-        layers.Dense(num_classes, activation=&#39;softmax&#39;)
-    ])
+    if pretrained:
+        base_model = tf.keras.applications.ResNet50(weights=&#39;imagenet&#39;,
+                                                    include_top=False,
+                                                    input_shape=(self.IMG_HEIGHT, self.IMG_WIDTH, 3))
+        base_model.trainable = False
+        inputs = tf.keras.Input(shape=(self.IMG_HEIGHT, self.IMG_WIDTH, 3))
+        x = self.DATA_AUGMENTATION(inputs)
+        x = base_model(x, training=False)
+        x = layers.Dropout(0.4)(x)
+        x = layers.Flatten()(x)
+        x = layers.Dense(1000, activation=&#39;relu&#39;)(x)
+        predictions = layers.Dense(num_classes, activation=&#39;softmax&#39;)(x)
+        self.model = Model(inputs=inputs, outputs=predictions)
+    else:
+        self.model = Sequential([
+            self.DATA_AUGMENTATION,
+            layers.Dropout(0.2),
+            layers.Rescaling(1. / 255),
+            layers.Conv2D(16, 3, padding=&#39;same&#39;, activation=&#39;relu&#39;),
+            layers.Conv2D(16, 3, padding=&#39;same&#39;, activation=&#39;relu&#39;),
+            layers.MaxPooling2D(),
+            layers.Conv2D(32, 3, padding=&#39;same&#39;, activation=&#39;relu&#39;),
+            layers.Conv2D(32, 3, padding=&#39;same&#39;, activation=&#39;relu&#39;),
+            layers.MaxPooling2D(),
+            layers.Conv2D(64, 3, padding=&#39;same&#39;, activation=&#39;relu&#39;),
+            layers.MaxPooling2D(),
+            layers.Dropout(0.4),
+            layers.Flatten(),
+            layers.Dense(128, activation=&#39;relu&#39;),
+            layers.Dense(num_classes, activation=&#39;softmax&#39;)
+        ])
+
     self.model.compile(optimizer=&#39;adam&#39;,
                        loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False),
                        metrics=[&#39;accuracy&#39;])
@@ -316,7 +359,7 @@ class ImageClassifier:
     return self</code></pre>
 </details>
 </dd>
-<dt id="src.classifier.ImageClassifier.save"><code class="name flex">
+<dt id="src.model.classifier.ImageClassifier.save"><code class="name flex">
 <span>def <span class="ident">save</span></span>(<span>self, path)</span>
 </code></dt>
 <dd>
@@ -351,22 +394,22 @@ class ImageClassifier:
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="src" href="index.html">src</a></code></li>
+<li><code><a title="src.model" href="index.html">src.model</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
-<h4><code><a title="src.classifier.ImageClassifier" href="#src.classifier.ImageClassifier">ImageClassifier</a></code></h4>
+<h4><code><a title="src.model.classifier.ImageClassifier" href="#src.model.classifier.ImageClassifier">ImageClassifier</a></code></h4>
 <ul class="two-column">
-<li><code><a title="src.classifier.ImageClassifier.AUTOTUNE" href="#src.classifier.ImageClassifier.AUTOTUNE">AUTOTUNE</a></code></li>
-<li><code><a title="src.classifier.ImageClassifier.BATCH_SIZE" href="#src.classifier.ImageClassifier.BATCH_SIZE">BATCH_SIZE</a></code></li>
-<li><code><a title="src.classifier.ImageClassifier.DATA_AUGMENTATION" href="#src.classifier.ImageClassifier.DATA_AUGMENTATION">DATA_AUGMENTATION</a></code></li>
-<li><code><a title="src.classifier.ImageClassifier.EPOCHS" href="#src.classifier.ImageClassifier.EPOCHS">EPOCHS</a></code></li>
-<li><code><a title="src.classifier.ImageClassifier.IMG_HEIGHT" href="#src.classifier.ImageClassifier.IMG_HEIGHT">IMG_HEIGHT</a></code></li>
-<li><code><a title="src.classifier.ImageClassifier.IMG_WIDTH" href="#src.classifier.ImageClassifier.IMG_WIDTH">IMG_WIDTH</a></code></li>
-<li><code><a title="src.classifier.ImageClassifier.fit" href="#src.classifier.ImageClassifier.fit">fit</a></code></li>
-<li><code><a title="src.classifier.ImageClassifier.save" href="#src.classifier.ImageClassifier.save">save</a></code></li>
+<li><code><a title="src.model.classifier.ImageClassifier.AUTOTUNE" href="#src.model.classifier.ImageClassifier.AUTOTUNE">AUTOTUNE</a></code></li>
+<li><code><a title="src.model.classifier.ImageClassifier.BATCH_SIZE" href="#src.model.classifier.ImageClassifier.BATCH_SIZE">BATCH_SIZE</a></code></li>
+<li><code><a title="src.model.classifier.ImageClassifier.DATA_AUGMENTATION" href="#src.model.classifier.ImageClassifier.DATA_AUGMENTATION">DATA_AUGMENTATION</a></code></li>
+<li><code><a title="src.model.classifier.ImageClassifier.EPOCHS" href="#src.model.classifier.ImageClassifier.EPOCHS">EPOCHS</a></code></li>
+<li><code><a title="src.model.classifier.ImageClassifier.IMG_HEIGHT" href="#src.model.classifier.ImageClassifier.IMG_HEIGHT">IMG_HEIGHT</a></code></li>
+<li><code><a title="src.model.classifier.ImageClassifier.IMG_WIDTH" href="#src.model.classifier.ImageClassifier.IMG_WIDTH">IMG_WIDTH</a></code></li>
+<li><code><a title="src.model.classifier.ImageClassifier.fit" href="#src.model.classifier.ImageClassifier.fit">fit</a></code></li>
+<li><code><a title="src.model.classifier.ImageClassifier.save" href="#src.model.classifier.ImageClassifier.save">save</a></code></li>
 </ul>
 </li>
 </ul>

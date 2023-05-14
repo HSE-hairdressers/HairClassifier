@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.10.0" />
-<title>src.imagecutter API documentation</title>
+<title>src.segmentation.imagecutter API documentation</title>
 <meta name="description" content="" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
@@ -19,7 +19,7 @@
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>src.imagecutter</code></h1>
+<h1 class="title">Module <code>src.segmentation.imagecutter</code></h1>
 </header>
 <section id="section-intro">
 <details class="source">
@@ -35,13 +35,7 @@ MP_DRAWING = mp.solutions.drawing_utils
 MP_DRAWING_STYLES = mp.solutions.drawing_styles
 MP_FACE_MESH = mp.solutions.face_mesh
 
-WIDTH_DELTA = 0.4
-FOREHEAD_DELTA = 0.7
-CHIN_DELTA = 0.3
-MIN_CONFIDENCE = 0.5
 WHITE = (255, 255, 255)
-SIZE = 500
-SIZE_CUT = 180
 
 
 class ImageCutter:
@@ -49,9 +43,17 @@ class ImageCutter:
     Class for image preprocessing.
     This class cuts image to leave only the face zone, sets black background and cuts out face to leave only hairline.
     &#34;&#34;&#34;
+    WIDTH_DELTA = 0.4
+    FOREHEAD_DELTA = 0.7
+    CHIN_DELTA = 0.3
+    MIN_CONFIDENCE = 0.5
+    SIZE = 500
+    SIZE_CUT = 180
+
     def __init__(self):
         mp_face_detection = mp.solutions.face_detection
-        self.__face_detection = mp_face_detection.FaceDetection(model_selection=1, min_detection_confidence=0.5)
+        self.__face_detection = mp_face_detection.FaceDetection(model_selection=1,
+                                                                min_detection_confidence=self.MIN_CONFIDENCE)
         mp_selfie_segmentation = mp.solutions.selfie_segmentation
         self.__selfie_segmentation = mp_selfie_segmentation.SelfieSegmentation(model_selection=1)
         self.__drawing_spec = MP_DRAWING.DrawingSpec(thickness=1, circle_radius=1)
@@ -70,20 +72,15 @@ class ImageCutter:
             logging.debug(&#39;No face found&#39;)
             raise ValueError(&#39;No face&#39;)
 
-        bbox_points = {
-            &#34;xmin&#34;: 0,
-            &#34;ymin&#34;: 0,
-            &#34;xmax&#34;: 0,
-            &#34;ymax&#34;: 0
-        }
+        bbox_points = { &#34;xmin&#34;: 0, &#34;ymin&#34;: 0, &#34;xmax&#34;: 0, &#34;ymax&#34;: 0}
         # Get Bounding Box coordinates of
         for detection in results.detections:
             bbox = detection.location_data.relative_bounding_box
             bbox_points = {
-                &#34;xmin&#34;: max(int(bbox.xmin * width - bbox.width * width * WIDTH_DELTA), 0),
-                &#34;ymin&#34;: max(int(bbox.ymin * height - bbox.height * height * FOREHEAD_DELTA), 0),
-                &#34;xmax&#34;: min(int(bbox.width * width * (1 + WIDTH_DELTA) + bbox.xmin * width), width - 1),
-                &#34;ymax&#34;: min(int(bbox.height * height * (1 + CHIN_DELTA) + bbox.ymin * height), height - 1)
+                &#34;xmin&#34;: max(int(bbox.xmin * width - bbox.width * width * self.WIDTH_DELTA), 0),
+                &#34;ymin&#34;: max(int(bbox.ymin * height - bbox.height * height * self.FOREHEAD_DELTA), 0),
+                &#34;xmax&#34;: min(int(bbox.width * width * (1 + self.WIDTH_DELTA) + bbox.xmin * width), width - 1),
+                &#34;ymax&#34;: min(int(bbox.height * height * (1 + self.CHIN_DELTA) + bbox.ymin * height), height - 1)
             }
         logging.debug(&#39;Face found. Image cut&#39;)
         return image[bbox_points[&#34;ymin&#34;]:bbox_points[&#34;ymax&#34;], bbox_points[&#34;xmin&#34;]:bbox_points[&#34;xmax&#34;]]
@@ -102,7 +99,7 @@ class ImageCutter:
         # Extract segmented mask
         mask = results.segmentation_mask
         # The  mask returns true or false where the condition applies in the mask
-        condition = np.stack((mask,) * 3, axis=-1) &gt; MIN_CONFIDENCE
+        condition = np.stack((mask,) * 3, axis=-1) &gt; self.MIN_CONFIDENCE
         # Create black background image of the same size as the original frame
         black = np.zeros((height, width, 3), dtype=&#34;uint8&#34;)
         logging.debug(&#39;Background is set to black.&#39;)
@@ -116,14 +113,14 @@ class ImageCutter:
         :return: face image with black background
         &#34;&#34;&#34;
         # Resize the input image to reduce the time of cutting
-        new_size = (SIZE, int(image.shape[0] * SIZE / image.shape[1]))
+        new_size = (self.SIZE, int(image.shape[0] * self.SIZE / image.shape[1]))
         image_resized = cv2.resize(image, new_size)
 
         logging.debug(&#39;Cutting face zone&#39;)
         image_cut = self.get_face_zone(image_resized)
 
         # Resize the image again to be of the same size as the images in the dataset
-        new_size = (SIZE_CUT, int(image_cut.shape[0] * SIZE_CUT / image_cut.shape[1]))
+        new_size = (self.SIZE_CUT, int(image_cut.shape[0] * self.SIZE_CUT / image_cut.shape[1]))
         image_cut_resized = cv2.resize(image_cut, new_size)
 
         logging.debug(&#39;Setting black background&#39;)
@@ -131,17 +128,17 @@ class ImageCutter:
         return face
 
     def cut_face_out(self, image):
-        &#39;&#39;&#39;
+        &#34;&#34;&#34;
         Method, which cuts out the face by contour using face mesh
         :param image: input image
         :return: image without face
-        &#39;&#39;&#39;
+        &#34;&#34;&#34;
         print(&#39;Cutting out face...&#39;)
         with MP_FACE_MESH.FaceMesh(
                 static_image_mode=True,
                 max_num_faces=1,
                 refine_landmarks=True,
-                min_detection_confidence=MIN_CONFIDENCE) as face_mesh:
+                min_detection_confidence=self.MIN_CONFIDENCE) as face_mesh:
 
             # Convert the BGR image to RGB and process it with face landmark function
             results = face_mesh.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
@@ -212,7 +209,7 @@ class ImageCutter:
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
-<dt id="src.imagecutter.ImageCutter"><code class="flex name class">
+<dt id="src.segmentation.imagecutter.ImageCutter"><code class="flex name class">
 <span>class <span class="ident">ImageCutter</span></span>
 </code></dt>
 <dd>
@@ -227,9 +224,17 @@ This class cuts image to leave only the face zone, sets black background and cut
     Class for image preprocessing.
     This class cuts image to leave only the face zone, sets black background and cuts out face to leave only hairline.
     &#34;&#34;&#34;
+    WIDTH_DELTA = 0.4
+    FOREHEAD_DELTA = 0.7
+    CHIN_DELTA = 0.3
+    MIN_CONFIDENCE = 0.5
+    SIZE = 500
+    SIZE_CUT = 180
+
     def __init__(self):
         mp_face_detection = mp.solutions.face_detection
-        self.__face_detection = mp_face_detection.FaceDetection(model_selection=1, min_detection_confidence=0.5)
+        self.__face_detection = mp_face_detection.FaceDetection(model_selection=1,
+                                                                min_detection_confidence=self.MIN_CONFIDENCE)
         mp_selfie_segmentation = mp.solutions.selfie_segmentation
         self.__selfie_segmentation = mp_selfie_segmentation.SelfieSegmentation(model_selection=1)
         self.__drawing_spec = MP_DRAWING.DrawingSpec(thickness=1, circle_radius=1)
@@ -248,20 +253,15 @@ This class cuts image to leave only the face zone, sets black background and cut
             logging.debug(&#39;No face found&#39;)
             raise ValueError(&#39;No face&#39;)
 
-        bbox_points = {
-            &#34;xmin&#34;: 0,
-            &#34;ymin&#34;: 0,
-            &#34;xmax&#34;: 0,
-            &#34;ymax&#34;: 0
-        }
+        bbox_points = { &#34;xmin&#34;: 0, &#34;ymin&#34;: 0, &#34;xmax&#34;: 0, &#34;ymax&#34;: 0}
         # Get Bounding Box coordinates of
         for detection in results.detections:
             bbox = detection.location_data.relative_bounding_box
             bbox_points = {
-                &#34;xmin&#34;: max(int(bbox.xmin * width - bbox.width * width * WIDTH_DELTA), 0),
-                &#34;ymin&#34;: max(int(bbox.ymin * height - bbox.height * height * FOREHEAD_DELTA), 0),
-                &#34;xmax&#34;: min(int(bbox.width * width * (1 + WIDTH_DELTA) + bbox.xmin * width), width - 1),
-                &#34;ymax&#34;: min(int(bbox.height * height * (1 + CHIN_DELTA) + bbox.ymin * height), height - 1)
+                &#34;xmin&#34;: max(int(bbox.xmin * width - bbox.width * width * self.WIDTH_DELTA), 0),
+                &#34;ymin&#34;: max(int(bbox.ymin * height - bbox.height * height * self.FOREHEAD_DELTA), 0),
+                &#34;xmax&#34;: min(int(bbox.width * width * (1 + self.WIDTH_DELTA) + bbox.xmin * width), width - 1),
+                &#34;ymax&#34;: min(int(bbox.height * height * (1 + self.CHIN_DELTA) + bbox.ymin * height), height - 1)
             }
         logging.debug(&#39;Face found. Image cut&#39;)
         return image[bbox_points[&#34;ymin&#34;]:bbox_points[&#34;ymax&#34;], bbox_points[&#34;xmin&#34;]:bbox_points[&#34;xmax&#34;]]
@@ -280,7 +280,7 @@ This class cuts image to leave only the face zone, sets black background and cut
         # Extract segmented mask
         mask = results.segmentation_mask
         # The  mask returns true or false where the condition applies in the mask
-        condition = np.stack((mask,) * 3, axis=-1) &gt; MIN_CONFIDENCE
+        condition = np.stack((mask,) * 3, axis=-1) &gt; self.MIN_CONFIDENCE
         # Create black background image of the same size as the original frame
         black = np.zeros((height, width, 3), dtype=&#34;uint8&#34;)
         logging.debug(&#39;Background is set to black.&#39;)
@@ -294,14 +294,14 @@ This class cuts image to leave only the face zone, sets black background and cut
         :return: face image with black background
         &#34;&#34;&#34;
         # Resize the input image to reduce the time of cutting
-        new_size = (SIZE, int(image.shape[0] * SIZE / image.shape[1]))
+        new_size = (self.SIZE, int(image.shape[0] * self.SIZE / image.shape[1]))
         image_resized = cv2.resize(image, new_size)
 
         logging.debug(&#39;Cutting face zone&#39;)
         image_cut = self.get_face_zone(image_resized)
 
         # Resize the image again to be of the same size as the images in the dataset
-        new_size = (SIZE_CUT, int(image_cut.shape[0] * SIZE_CUT / image_cut.shape[1]))
+        new_size = (self.SIZE_CUT, int(image_cut.shape[0] * self.SIZE_CUT / image_cut.shape[1]))
         image_cut_resized = cv2.resize(image_cut, new_size)
 
         logging.debug(&#39;Setting black background&#39;)
@@ -309,17 +309,17 @@ This class cuts image to leave only the face zone, sets black background and cut
         return face
 
     def cut_face_out(self, image):
-        &#39;&#39;&#39;
+        &#34;&#34;&#34;
         Method, which cuts out the face by contour using face mesh
         :param image: input image
         :return: image without face
-        &#39;&#39;&#39;
+        &#34;&#34;&#34;
         print(&#39;Cutting out face...&#39;)
         with MP_FACE_MESH.FaceMesh(
                 static_image_mode=True,
                 max_num_faces=1,
                 refine_landmarks=True,
-                min_detection_confidence=MIN_CONFIDENCE) as face_mesh:
+                min_detection_confidence=self.MIN_CONFIDENCE) as face_mesh:
 
             # Convert the BGR image to RGB and process it with face landmark function
             results = face_mesh.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
@@ -380,9 +380,36 @@ This class cuts image to leave only the face zone, sets black background and cut
             hair = image * mask[:, :, np.newaxis]
         return hair</code></pre>
 </details>
+<h3>Class variables</h3>
+<dl>
+<dt id="src.segmentation.imagecutter.ImageCutter.CHIN_DELTA"><code class="name">var <span class="ident">CHIN_DELTA</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="src.segmentation.imagecutter.ImageCutter.FOREHEAD_DELTA"><code class="name">var <span class="ident">FOREHEAD_DELTA</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="src.segmentation.imagecutter.ImageCutter.MIN_CONFIDENCE"><code class="name">var <span class="ident">MIN_CONFIDENCE</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="src.segmentation.imagecutter.ImageCutter.SIZE"><code class="name">var <span class="ident">SIZE</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="src.segmentation.imagecutter.ImageCutter.SIZE_CUT"><code class="name">var <span class="ident">SIZE_CUT</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="src.segmentation.imagecutter.ImageCutter.WIDTH_DELTA"><code class="name">var <span class="ident">WIDTH_DELTA</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
 <h3>Methods</h3>
 <dl>
-<dt id="src.imagecutter.ImageCutter.cut_face_out"><code class="name flex">
+<dt id="src.segmentation.imagecutter.ImageCutter.cut_face_out"><code class="name flex">
 <span>def <span class="ident">cut_face_out</span></span>(<span>self, image)</span>
 </code></dt>
 <dd>
@@ -394,17 +421,17 @@ This class cuts image to leave only the face zone, sets black background and cut
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def cut_face_out(self, image):
-    &#39;&#39;&#39;
+    &#34;&#34;&#34;
     Method, which cuts out the face by contour using face mesh
     :param image: input image
     :return: image without face
-    &#39;&#39;&#39;
+    &#34;&#34;&#34;
     print(&#39;Cutting out face...&#39;)
     with MP_FACE_MESH.FaceMesh(
             static_image_mode=True,
             max_num_faces=1,
             refine_landmarks=True,
-            min_detection_confidence=MIN_CONFIDENCE) as face_mesh:
+            min_detection_confidence=self.MIN_CONFIDENCE) as face_mesh:
 
         # Convert the BGR image to RGB and process it with face landmark function
         results = face_mesh.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
@@ -466,7 +493,7 @@ This class cuts image to leave only the face zone, sets black background and cut
     return hair</code></pre>
 </details>
 </dd>
-<dt id="src.imagecutter.ImageCutter.get_face"><code class="name flex">
+<dt id="src.segmentation.imagecutter.ImageCutter.get_face"><code class="name flex">
 <span>def <span class="ident">get_face</span></span>(<span>self, image)</span>
 </code></dt>
 <dd>
@@ -484,14 +511,14 @@ This class cuts image to leave only the face zone, sets black background and cut
     :return: face image with black background
     &#34;&#34;&#34;
     # Resize the input image to reduce the time of cutting
-    new_size = (SIZE, int(image.shape[0] * SIZE / image.shape[1]))
+    new_size = (self.SIZE, int(image.shape[0] * self.SIZE / image.shape[1]))
     image_resized = cv2.resize(image, new_size)
 
     logging.debug(&#39;Cutting face zone&#39;)
     image_cut = self.get_face_zone(image_resized)
 
     # Resize the image again to be of the same size as the images in the dataset
-    new_size = (SIZE_CUT, int(image_cut.shape[0] * SIZE_CUT / image_cut.shape[1]))
+    new_size = (self.SIZE_CUT, int(image_cut.shape[0] * self.SIZE_CUT / image_cut.shape[1]))
     image_cut_resized = cv2.resize(image_cut, new_size)
 
     logging.debug(&#39;Setting black background&#39;)
@@ -499,7 +526,7 @@ This class cuts image to leave only the face zone, sets black background and cut
     return face</code></pre>
 </details>
 </dd>
-<dt id="src.imagecutter.ImageCutter.get_face_zone"><code class="name flex">
+<dt id="src.segmentation.imagecutter.ImageCutter.get_face_zone"><code class="name flex">
 <span>def <span class="ident">get_face_zone</span></span>(<span>self, image)</span>
 </code></dt>
 <dd>
@@ -524,26 +551,21 @@ This class cuts image to leave only the face zone, sets black background and cut
         logging.debug(&#39;No face found&#39;)
         raise ValueError(&#39;No face&#39;)
 
-    bbox_points = {
-        &#34;xmin&#34;: 0,
-        &#34;ymin&#34;: 0,
-        &#34;xmax&#34;: 0,
-        &#34;ymax&#34;: 0
-    }
+    bbox_points = { &#34;xmin&#34;: 0, &#34;ymin&#34;: 0, &#34;xmax&#34;: 0, &#34;ymax&#34;: 0}
     # Get Bounding Box coordinates of
     for detection in results.detections:
         bbox = detection.location_data.relative_bounding_box
         bbox_points = {
-            &#34;xmin&#34;: max(int(bbox.xmin * width - bbox.width * width * WIDTH_DELTA), 0),
-            &#34;ymin&#34;: max(int(bbox.ymin * height - bbox.height * height * FOREHEAD_DELTA), 0),
-            &#34;xmax&#34;: min(int(bbox.width * width * (1 + WIDTH_DELTA) + bbox.xmin * width), width - 1),
-            &#34;ymax&#34;: min(int(bbox.height * height * (1 + CHIN_DELTA) + bbox.ymin * height), height - 1)
+            &#34;xmin&#34;: max(int(bbox.xmin * width - bbox.width * width * self.WIDTH_DELTA), 0),
+            &#34;ymin&#34;: max(int(bbox.ymin * height - bbox.height * height * self.FOREHEAD_DELTA), 0),
+            &#34;xmax&#34;: min(int(bbox.width * width * (1 + self.WIDTH_DELTA) + bbox.xmin * width), width - 1),
+            &#34;ymax&#34;: min(int(bbox.height * height * (1 + self.CHIN_DELTA) + bbox.ymin * height), height - 1)
         }
     logging.debug(&#39;Face found. Image cut&#39;)
     return image[bbox_points[&#34;ymin&#34;]:bbox_points[&#34;ymax&#34;], bbox_points[&#34;xmin&#34;]:bbox_points[&#34;xmax&#34;]]</code></pre>
 </details>
 </dd>
-<dt id="src.imagecutter.ImageCutter.set_black_background"><code class="name flex">
+<dt id="src.segmentation.imagecutter.ImageCutter.set_black_background"><code class="name flex">
 <span>def <span class="ident">set_black_background</span></span>(<span>self, image)</span>
 </code></dt>
 <dd>
@@ -568,7 +590,7 @@ This class cuts image to leave only the face zone, sets black background and cut
     # Extract segmented mask
     mask = results.segmentation_mask
     # The  mask returns true or false where the condition applies in the mask
-    condition = np.stack((mask,) * 3, axis=-1) &gt; MIN_CONFIDENCE
+    condition = np.stack((mask,) * 3, axis=-1) &gt; self.MIN_CONFIDENCE
     # Create black background image of the same size as the original frame
     black = np.zeros((height, width, 3), dtype=&#34;uint8&#34;)
     logging.debug(&#39;Background is set to black.&#39;)
@@ -589,18 +611,24 @@ This class cuts image to leave only the face zone, sets black background and cut
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="src" href="index.html">src</a></code></li>
+<li><code><a title="src.segmentation" href="index.html">src.segmentation</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
-<h4><code><a title="src.imagecutter.ImageCutter" href="#src.imagecutter.ImageCutter">ImageCutter</a></code></h4>
+<h4><code><a title="src.segmentation.imagecutter.ImageCutter" href="#src.segmentation.imagecutter.ImageCutter">ImageCutter</a></code></h4>
 <ul class="">
-<li><code><a title="src.imagecutter.ImageCutter.cut_face_out" href="#src.imagecutter.ImageCutter.cut_face_out">cut_face_out</a></code></li>
-<li><code><a title="src.imagecutter.ImageCutter.get_face" href="#src.imagecutter.ImageCutter.get_face">get_face</a></code></li>
-<li><code><a title="src.imagecutter.ImageCutter.get_face_zone" href="#src.imagecutter.ImageCutter.get_face_zone">get_face_zone</a></code></li>
-<li><code><a title="src.imagecutter.ImageCutter.set_black_background" href="#src.imagecutter.ImageCutter.set_black_background">set_black_background</a></code></li>
+<li><code><a title="src.segmentation.imagecutter.ImageCutter.CHIN_DELTA" href="#src.segmentation.imagecutter.ImageCutter.CHIN_DELTA">CHIN_DELTA</a></code></li>
+<li><code><a title="src.segmentation.imagecutter.ImageCutter.FOREHEAD_DELTA" href="#src.segmentation.imagecutter.ImageCutter.FOREHEAD_DELTA">FOREHEAD_DELTA</a></code></li>
+<li><code><a title="src.segmentation.imagecutter.ImageCutter.MIN_CONFIDENCE" href="#src.segmentation.imagecutter.ImageCutter.MIN_CONFIDENCE">MIN_CONFIDENCE</a></code></li>
+<li><code><a title="src.segmentation.imagecutter.ImageCutter.SIZE" href="#src.segmentation.imagecutter.ImageCutter.SIZE">SIZE</a></code></li>
+<li><code><a title="src.segmentation.imagecutter.ImageCutter.SIZE_CUT" href="#src.segmentation.imagecutter.ImageCutter.SIZE_CUT">SIZE_CUT</a></code></li>
+<li><code><a title="src.segmentation.imagecutter.ImageCutter.WIDTH_DELTA" href="#src.segmentation.imagecutter.ImageCutter.WIDTH_DELTA">WIDTH_DELTA</a></code></li>
+<li><code><a title="src.segmentation.imagecutter.ImageCutter.cut_face_out" href="#src.segmentation.imagecutter.ImageCutter.cut_face_out">cut_face_out</a></code></li>
+<li><code><a title="src.segmentation.imagecutter.ImageCutter.get_face" href="#src.segmentation.imagecutter.ImageCutter.get_face">get_face</a></code></li>
+<li><code><a title="src.segmentation.imagecutter.ImageCutter.get_face_zone" href="#src.segmentation.imagecutter.ImageCutter.get_face_zone">get_face_zone</a></code></li>
+<li><code><a title="src.segmentation.imagecutter.ImageCutter.set_black_background" href="#src.segmentation.imagecutter.ImageCutter.set_black_background">set_black_background</a></code></li>
 </ul>
 </li>
 </ul>

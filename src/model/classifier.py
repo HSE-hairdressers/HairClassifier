@@ -1,15 +1,9 @@
-from functools import partial
-
 import tensorflow as tf
 from tensorflow import keras
 from keras import layers, Model
 from keras.models import Sequential
-from albumentations import (
-    Compose, RandomBrightnessContrast, ImageCompression, HueSaturationValue, HorizontalFlip,
-    Rotate
-)
 import pathlib
-from src.constants import MODEL_NAME, CLASSES_FILE_NAME
+from src.utils.constants import MODEL_NAME, CLASSES_FILE_NAME
 
 
 class ImageClassifier:
