@@ -15,7 +15,7 @@ classifier = RestoredModel(MODEL_PATH)
 
 
 # Route http post method
-@app.route('/api/test', methods=['POST'])
+@app.route('/api/hair', methods=['POST'])
 def classify_image():
     '''
     Handle function, which catches the image
