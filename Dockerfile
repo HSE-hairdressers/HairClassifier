@@ -9,5 +9,6 @@ RUN pip3 install -r requirements.txt
 COPY . .
 
 RUN apt-get update && apt-get install ffmpeg libsm6 libxext6  -y
+ENV PYTHONPATH "${PYTHONPATH}:/app"
 
-CMD [ "python3", "app.py"]
+CMD [ "python3", "src/app.py"]
