@@ -52,4 +52,4 @@ def classify_image():
 # Start flask application
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.DEBUG)
-    serve(app, host="0.0.0.0", port=8022)
+    serve(app, host="localhost", port=8022)
