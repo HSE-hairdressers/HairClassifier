@@ -105,7 +105,7 @@ class ImageCutter:
         :param image: input image
         :return: image without face
         """
-        print('Cutting out face...')
+        logging.debug('Cutting out face...')
         with MP_FACE_MESH.FaceMesh(
                 static_image_mode=True,
                 max_num_faces=1,
