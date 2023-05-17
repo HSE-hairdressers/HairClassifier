@@ -133,7 +133,7 @@ class ImageCutter:
         :param image: input image
         :return: image without face
         &#34;&#34;&#34;
-        print(&#39;Cutting out face...&#39;)
+        logging.debug(&#39;Cutting out face...&#39;)
         with MP_FACE_MESH.FaceMesh(
                 static_image_mode=True,
                 max_num_faces=1,
@@ -314,7 +314,7 @@ This class cuts image to leave only the face zone, sets black background and cut
         :param image: input image
         :return: image without face
         &#34;&#34;&#34;
-        print(&#39;Cutting out face...&#39;)
+        logging.debug(&#39;Cutting out face...&#39;)
         with MP_FACE_MESH.FaceMesh(
                 static_image_mode=True,
                 max_num_faces=1,
@@ -426,7 +426,7 @@ This class cuts image to leave only the face zone, sets black background and cut
     :param image: input image
     :return: image without face
     &#34;&#34;&#34;
-    print(&#39;Cutting out face...&#39;)
+    logging.debug(&#39;Cutting out face...&#39;)
     with MP_FACE_MESH.FaceMesh(
             static_image_mode=True,
             max_num_faces=1,
