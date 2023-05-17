@@ -69,9 +69,9 @@ class RestoredModel:
         # Choose class with the highest probability
         result = self.class_names[np.argmax(predictions[0])]
         # Print logs for debug
-        print(&#34;Prediction results:&#34;)
+        logging.info(&#34;Prediction results:&#34;)
         for i in range(len(predictions[0])):
-            print(self.class_names[i] + &#34; &#34; + str(predictions[0][i]))
+            logging.info(self.class_names[i] + &#34; &#34; + str(predictions[0][i]))
         print()
         return result</code></pre>
 </details>
@@ -131,9 +131,9 @@ class RestoredModel:
         # Choose class with the highest probability
         result = self.class_names[np.argmax(predictions[0])]
         # Print logs for debug
-        print(&#34;Prediction results:&#34;)
+        logging.info(&#34;Prediction results:&#34;)
         for i in range(len(predictions[0])):
-            print(self.class_names[i] + &#34; &#34; + str(predictions[0][i]))
+            logging.info(self.class_names[i] + &#34; &#34; + str(predictions[0][i]))
         print()
         return result</code></pre>
 </details>
@@ -169,9 +169,9 @@ class RestoredModel:
     # Choose class with the highest probability
     result = self.class_names[np.argmax(predictions[0])]
     # Print logs for debug
-    print(&#34;Prediction results:&#34;)
+    logging.info(&#34;Prediction results:&#34;)
     for i in range(len(predictions[0])):
-        print(self.class_names[i] + &#34; &#34; + str(predictions[0][i]))
+        logging.info(self.class_names[i] + &#34; &#34; + str(predictions[0][i]))
     print()
     return result</code></pre>
 </details>
