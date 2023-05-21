@@ -1,5 +1,11 @@
 # HairClassifier
 
+## Hairstyle classification Model
+* Fast and lightweight ImageCutter for cutting out background and faces
+* 80% classification accuracy
+* heavy transfer learning option using ResNet50 & lightweight self-made model for classification
+* lightweight python server using Flask
+
 ## ImageCutter
 <details>
   <summary>Example</summary>
